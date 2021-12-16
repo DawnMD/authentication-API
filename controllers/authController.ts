@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import { comparePassowrd, hashPassword } from '../utils/passwordUtils';
 import { PrismaClient } from '@prisma/client';
+import jwt from 'jsonwebtoken';
+import { generateAccessToken } from '../utils/token';
 
 const prisma = new PrismaClient();
 
@@ -58,7 +60,13 @@ export const login = async (req: Request, res: Response) => {
       return res.status(401).json({ message: 'Incorrect password' });
     }
 
-    res.status(200).json({ message: 'Login successful' });
+    const accessToken = generateAccessToken({
+      email: user.email,
+      firstName: user.fname,
+      lastName: user.lname,
+    });
+
+    res.status(200).json({ access_token: accessToken });
   } catch (error) {
     res.status(424).json({ message: 'Login failed' });
   }
