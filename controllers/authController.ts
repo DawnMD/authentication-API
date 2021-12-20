@@ -1,8 +1,7 @@
 import { Request, Response } from 'express';
 import { comparePassowrd, hashPassword } from '../utils/passwordUtils';
 import { PrismaClient } from '@prisma/client';
-import jwt from 'jsonwebtoken';
-import { generateAccessToken } from '../utils/token';
+import { generateAccessToken, generateRefreshToken } from '../utils/token';
 
 const prisma = new PrismaClient();
 
@@ -60,10 +59,19 @@ export const login = async (req: Request, res: Response) => {
       return res.status(401).json({ message: 'Incorrect password' });
     }
 
-    const accessToken = generateAccessToken({
+    const tokenPayload = {
+      id: user.id,
       email: user.email,
       firstName: user.fname,
       lastName: user.lname,
+    };
+
+    const accessToken = generateAccessToken(tokenPayload);
+
+    const refreshToken = generateRefreshToken(tokenPayload);
+
+    res.cookie('APIJWT', refreshToken, {
+      httpOnly: true,
     });
 
     res.status(200).json({ access_token: accessToken });
@@ -71,6 +79,8 @@ export const login = async (req: Request, res: Response) => {
     res.status(424).json({ message: 'Login failed' });
   }
 };
+
+export const refreshToken = (req: Request, res: Response) => {};
 
 export const deleteAccount = async (req: Request, res: Response) => {
   const email = req.body.email;
