@@ -1,7 +1,13 @@
 import { Request, Response } from 'express';
 import { comparePassowrd, hashPassword } from '../utils/passwordUtils';
 import { PrismaClient } from '@prisma/client';
-import { generateAccessToken, generateRefreshToken } from '../utils/token';
+import {
+  generateAccessToken,
+  generateRefreshToken,
+  setRefreshToken,
+  verifyRefreshToken,
+} from '../utils/token';
+import { IUserIDPayload } from '../types/authTypes';
 
 const prisma = new PrismaClient();
 
@@ -70,9 +76,7 @@ export const login = async (req: Request, res: Response) => {
 
     const refreshToken = generateRefreshToken(tokenPayload);
 
-    res.cookie('APIJWT', refreshToken, {
-      httpOnly: true,
-    });
+    setRefreshToken(res, refreshToken);
 
     res.status(200).json({ access_token: accessToken });
   } catch (error) {
@@ -80,7 +84,38 @@ export const login = async (req: Request, res: Response) => {
   }
 };
 
-export const refreshToken = (req: Request, res: Response) => {};
+export const refreshToken = async (req: Request, res: Response) => {
+  const token = req.cookies.APIJWT as string;
+
+  if (!token) {
+    return res.status(401).json({ messgae: 'Refesh token not provided' });
+  }
+
+  let payload: null | IUserIDPayload;
+
+  try {
+    payload = verifyRefreshToken(token);
+  } catch (error) {
+    return res.status(401).json({ message: 'Invalid refresh token' });
+  }
+
+  const user = await prisma.user.findUnique({ where: { id: payload.id } });
+
+  if (!user) {
+    return res.status(404).json({ message: 'No user found' });
+  }
+
+  const tokenPayload = {
+    id: user.id,
+    email: user.email,
+    firstName: user.fname,
+    lastName: user.lname,
+  };
+
+  return res
+    .status(200)
+    .json({ OK: true, accessToken: generateAccessToken(tokenPayload) });
+};
 
 export const deleteAccount = async (req: Request, res: Response) => {
   const email = req.body.email;
