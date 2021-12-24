@@ -145,3 +145,8 @@ export const deleteAccount = async (req: Request, res: Response) => {
     res.status(424).json({ message: 'Delete failed' });
   }
 };
+
+export const logout = (req: Request, res: Response) => {
+  setRefreshToken(res, '');
+  return res.status(200).json({ OK: true });
+};
