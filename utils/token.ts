@@ -25,5 +25,7 @@ export const verifyRefreshToken = (token: string) => {
 };
 
 export const setRefreshToken = (res: Response, token: string) => {
-  res.cookie('APIJWT', token);
+  res.cookie('APIJWT', token, {
+    httpOnly: true,
+  });
 };
